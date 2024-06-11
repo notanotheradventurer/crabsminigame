@@ -1,0 +1,10 @@
+﻿I'm sorry, but errors were detected in your script. Please correct the
+errors listed below, and try again.
+
+
+File "game/script.rpy", line 46: 'mask' is not a keyword argument or valid child of the imagebutton statement.
+    mask madcrab_mask
+        ^
+
+Ren'Py Version: Ren'Py 8.2.1.24030407
+Tue Jun 11 17:30:49 2024

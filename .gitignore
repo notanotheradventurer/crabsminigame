@@ -1,0 +1,6 @@
+persistent/*
+*.rpyc
+*.rpyb
+*.bak
+*.log
+__pycache__/

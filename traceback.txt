@@ -1,0 +1,28 @@
+﻿I'm sorry, but an uncaught exception occurred.
+
+While running game code:
+  File "game/script.rpy", line 12, in script
+    init python:
+  File "game/script.rpy", line 23, in <module>
+    style.wam_imagebutton = Style(style.imagebutton)
+Exception: Style 'imagebutton' does not exist.
+
+-- Full Traceback ------------------------------------------------------------
+
+Full traceback:
+  File "game/script.rpy", line 12, in script
+    init python:
+  File "/Applications/renpy-sdk/renpy/ast.py", line 823, in execute
+    renpy.python.py_exec_bytecode(self.code.bytecode, self.hide, store=self.store)
+  File "/Applications/renpy-sdk/renpy/python.py", line 1178, in py_exec_bytecode
+    exec(bytecode, globals, locals)
+  File "game/script.rpy", line 23, in <module>
+    style.wam_imagebutton = Style(style.imagebutton)
+  File "style.pyx", line 216, in renpy.style.StyleManager.__getattr__
+  File "style.pyx", line 83, in renpy.style.get_style
+Exception: Style 'imagebutton' does not exist.
+
+macOS-14.5-arm64-arm-64bit arm64
+Ren'Py 8.2.1.24030407
+Crab Minigame 1.0
+Tue Jun 11 17:39:38 2024
