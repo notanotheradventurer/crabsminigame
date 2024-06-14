@@ -1,128 +1,25 @@
-﻿# Define variables for images
-default madcrab = 'madcrab.png'
-default madcrab_mask = 'madcrab_mask.webp'
-default background = 'crabgame_bg.png'
-default charm_amber_icon = 'charm_amber.webp'
+﻿# game/script.rpy
 
-# Initialize variables to avoid undefined variable errors
-init:
-    $ timer_jump = "timeout_label"
-    $ time = 0.0
-    $ charm_amber = 0
-    $ points_to_win = 20  # Points required to win
-    $ min_interval = 0.2  # Minimum interval between crab appearances
-    $ initial_speed = 0.5  # Initial speed factor
-    $ max_crabs = 5  # Maximum number of crabs at any time
-    $ crabs = []  # Global crabs list to track remaining crabs
+label start:
+    "Let's play the grabacrab game!"
+    call play_grabacrab from _call_play_grabacrab
+    return
 
-# Screen to show the countdown timer
-screen countdown:
-    zorder 2
-    timer 1.0 repeat True action If(time > 0, true=SetVariable('time', time - 1), false=[Hide('countdown'), Jump(timer_jump)])
-    text str(int(time)):
-        xalign 0.5
-        yalign 0.05
-        size 40
-        color "#FF0000"
-
-# Screen for the grabacrab minigame
-screen grabacrab(timer_duration=30, speed_increment=0.5):
-    zorder 1
-    default speed = initial_speed
-    default elapsed_time = 0.0
-
-    # Background image
-    add background
-
-    # Main grid
-    grid 6 3:
-        pos (363, 303)
-        xsize 1138
-        ysize 671
-        spacing 20
-
-        # Placeholder for crab images
-        for i in range(18):
-            if i in crabs:
-                frame:
-                    background None
-                    xsize 180
-                    ysize 180
-                    align (0.5, 0.5)
-                    imagebutton:
-                        background None
-                        idle madcrab
-                        hover madcrab
-                        focus_mask True
-                        xalign 0.5
-                        yalign 0.5
-                        action [
-                            Function(crabs.remove, i),
-                            SetVariable('score', score + 1)
-                        ]
-            else:
-                null
-
-    # Timer to add crabs at dynamic intervals
-    timer max(initial_speed / (1 + elapsed_time / 10), min_interval) action [
-        Function(add_crab, elapsed_time, timer_duration, max_crabs),
-        SetVariable('elapsed_time', elapsed_time + max(initial_speed / (1 + elapsed_time / 10), min_interval))
-    ] repeat True
-
-    # Display the score
-    hbox:
-        xalign 0.5
-        yalign 0.97  # Adjusted to move down to the center bottom
-        spacing 10
-        text "Score: [score]" size 40 color "#FFFFFF"
-
-    # Display charm amber icon and amount
-    hbox:
-        xalign 0.95  # Positioned to the lower right
-        yalign 0.95
-        spacing 10
-        add charm_amber_icon:
-            xsize 64
-            ysize 64
-        text str(charm_amber) size 40 color "#FFFFFF"
-
-# Function to add a crab
-init python:
-    import random
-
-    def add_crab(elapsed_time, timer_duration, max_crabs):
-        global crabs
-        if len(crabs) < 18:
-            # As the game progresses, add more crabs, especially in the last 10 seconds
-            num_new_crabs = min(max_crabs, max(1, int(len(crabs) * (1 + elapsed_time / timer_duration))))
-            for _ in range(num_new_crabs):
-                new_crab = random.randint(0, 17)
-                if new_crab not in crabs:
-                    crabs.append(new_crab)
-
-# Label to call the grabacrab minigame
 label play_grabacrab:
-    # Set initial time for countdown
     $ time = 30.0
     $ score = 0
     $ elapsed_time = 0.0
     $ timer_jump = "timeout_label"
-    # Reset crabs list
     $ crabs = []
-    # Show countdown screen
     show screen countdown
-    # Show grabacrab game
     call screen grabacrab(timer_duration=30, speed_increment=0.5)
-    # Calculate remaining crabs and deduct from score
     $ remaining_crabs = len(crabs)
     $ score -= remaining_crabs
     if score < 0:
         $ score = 0
     jump end_game
 
-# Label for timeout handling
 label timeout_label:
-    # Calculate remaining crabs and deduct from score
     $ remaining_crabs = len(crabs)
     $ score -= remaining_crabs
     if score < 0:
@@ -130,34 +27,88 @@ label timeout_label:
     jump end_game
 
 label end_game:
-    "Well well, it seems you have missed a few...."
-    "Remaining crabs: [remaining_crabs]"
-    "Adjusted Score: [score]"
-    if score >= points_to_win:
-        $ charm_amber += 1
-        jump win_screen
+    # Calculate the final score by subtracting remaining crabs
+    $ remaining_crabs = len(crabs)
+    $ final_score = score - remaining_crabs
+    if final_score < 0:
+        $ final_score = 0
+    
+    # Provide feedback through Marisol
+    if final_score >= points_to_win:
+        $ marisol_text = "You did well, you missed " + str(remaining_crabs) + " crabs, so your total is " + str(final_score) + "."
+        $ charm_amber += 1  # Award Charm Amber
+        show screen flash_screen
+        $ renpy.pause(FLASH_DURATION)
+        hide screen flash_screen
     else:
-        jump lose_screen
+        $ marisol_text = "You missed " + str(remaining_crabs) + " crabs, so your total is "  + str(final_score) + ". Better luck next time!"
+
+    show screen marisol_dialogue_screen
+    "[marisol_text]"
+    hide screen marisol_dialogue_screen
+
+    # Update the top score if the final score is higher
+    $ update_top_score(final_score)
+
+    if final_score >= points_to_win:
+        show screen reward_message_screen
+        $ renpy.pause(1.5)
+        hide screen reward_message_screen
+
+    # Call the new menu options label
+    jump menu_options
+
+label spend_charm_amber:
+    $ layer_hidden = False  # Flag to track if a layer has been hidden
+
+    while charm_amber > 0 or layer_hidden:
+        if charm_amber > 0 and not layer_hidden:
+            $ marisol_text = "The goddess demands a reward, but all I have is my clothing... so be it, it's yours to have! Take off an item of clothing."
+            show screen marisol_dialogue_screen
+            "[marisol_text]"  # Requires player to click to continue
+            hide screen marisol_dialogue_screen
+            $ update_marisol()
+            show screen marisol_layer_buttons
+
+            # Wait for the player to click an image button
+            $ _result = ui.interact()
+            hide screen marisol_layer_buttons
+            $ layer_hidden = True  # Set the flag to true after interaction
+
+        else:
+            hide screen marisol_dialogue_screen
+            hide screen marisol_layer_buttons
+            
+            # Show the overlay screen to capture clicks and display a message
+            show screen overlay_click_blocker(message="Click to continue.")
+            $ _result = ui.interact()  # Wait for the player to interact to continue
+            hide screen overlay_click_blocker
+            $ layer_hidden = False  # Reset the flag
+
+            # Check if all layers are hidden and handle accordingly
+            if total_layers <= 0:
+                jump game_over
+
+    # If no Charm Amber left and no layer to hide, return to menu options
+    jump menu_options
+
+label game_over:
+    "All layers are hidden. Game over!"
     return
 
-label win_screen:
-    "Congratulations! You won and earned a Charm Amber!"
+label round_2:
+    $ update_top_score(score)
+    $ round_number += 1
+    "Round [round_number] starts now!"
+    call play_grabacrab from _call_play_grabacrab_1
+    return
+
+label menu_options:
     menu:
+        "Spend Charm Amber" if charm_amber > 0:
+            jump spend_charm_amber
         "Play Again":
+            $ round_number += 1
             jump play_grabacrab
         "Exit to Main Menu":
             return
-
-label lose_screen:
-    "Time's up! You didn't reach the target score."
-    menu:
-        "Try Again":
-            jump play_grabacrab
-        "Exit to Main Menu":
-            return
-
-label start:
-    "Let's play the grabacrab game!"
-    call play_grabacrab
-    "Game over! You scored [score] points."
-    return
